@@ -28,7 +28,8 @@ type Action =
   | { type: 'LOADING' }
   | { type: 'SUCCESS'; weather: WeatherData; outfit: OutfitItem[] }
   | { type: 'ERROR'; error: string }
-  | { type: 'CLEAR_ERROR' };
+  | { type: 'CLEAR_ERROR' }
+  | { type: 'LOCATION_DENIED' };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -54,6 +55,8 @@ function reducer(state: State, action: Action): State {
       };
     case 'CLEAR_ERROR':
       return { ...state, error: null };
+    case 'LOCATION_DENIED':
+      return { ...state, locationStatus: 'idle', isLoading: false, error: null };
     default:
       return state;
   }
@@ -99,8 +102,12 @@ export default function Home() {
       ({ coords }) => {
         loadWeather(() => fetchWeatherByCoords(coords.latitude, coords.longitude));
       },
-      () => {
-        dispatch({ type: 'ERROR', error: '위치 접근이 거부됐어요. 도시명으로 검색해 주세요.' });
+      (posError) => {
+        if (posError.code === posError.PERMISSION_DENIED) {
+          dispatch({ type: 'LOCATION_DENIED' });
+        } else {
+          dispatch({ type: 'ERROR', error: '위치를 가져올 수 없어요. 도시명으로 검색해 주세요.' });
+        }
       },
       { timeout: 10000 }
     );
